@@ -1,0 +1,74 @@
+#!/bin/sh
+
+export WINEPATH
+export luaDir luarocksDir luaRoot lwcmd selfDir wincDir
+
+selfDir="$(dirname "$0")"
+wincDir="$HOME/.wine/drive_c"
+luaRoot="/lua"
+luarocksDir="$luaRoot/luarocks"
+
+#
+# FUNCTIONS
+#
+
+setluaVersionsion() {
+  case "$1" in
+    5.[1-4])
+      luaVersion="$1"
+      luaDir="$luaRoot/$luaVersion"
+      return 0;;
+    "") echo "Lua version not specified" ;;
+    *)  echo "Invalid Lua version: $1" ;;
+  esac
+  echo "Valid Lua versions are 5.1, 5.2, 5.3 or 5.4"
+  exit 1
+
+}
+
+setLuawCommand() {
+  case "$1" in
+    install|lua|luac|cmd)
+      lwcmd="$1"
+      return 0 ;;
+    "") printf "\nCommand not specified" ;;
+    *)  printf "\nInvalid Luaw command: \"%s\"" "$1" ;;
+  esac
+
+  printf "\
+    \n Valid commands are: \
+    \n  install  - install/compile Lua on wine \
+    \n  lua      - wraps lua interpreter on wine \
+    \n  luac     - wraps luac on wine \
+    \n  cmd      - run wine cmd \
+    \n"
+
+  exit 1;
+}
+
+# Returns a Windows formated path
+wpath() { echo "C:$*" | sed 's/\//\\/g'; }
+
+
+#
+# Execution
+#
+if [ "$DEBUG" != "" ]; then set -x; fi
+
+setluaVersionsion "$1"
+setLuawCommand "$2"
+shift 2
+
+WINEPATH="$(wpath /TDM-GCC-64/bin);$(wpath "$luaDir"/bin);$(wpath "$luarocksDir")"
+
+# shellcheck source=./inc/luaw_install.sh
+# shellcheck source=./inc/luaw_run.sh
+# shellcheck source=./inc/luaw_c.sh
+# shellcheck source=./inc/luaw_rocks.sh
+case "$lwcmd" in
+  lua|luac|cmd)
+    . "$selfDir/inc/luaw_run.sh";;
+  *)
+    . "$selfDir/inc/luaw_$lwcmd.sh";;
+esac
+
